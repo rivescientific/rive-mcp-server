@@ -10,12 +10,10 @@ import {
   type SiRNAScanResult,
   type Bridge,
   ThreatType,
-} from '@rive/farnsworth-core/dist/immunity/risc.js';
+} from '@rive/farnsworth-core';
 import {
   applyPRC2Gating,
   evaluateGateLift,
-} from '@rive/farnsworth-core/dist/developmental/prc2-engine.js';
-import {
   createGatingRule,
   createDevelopmentalStage,
   type PRC2Complex,
@@ -24,14 +22,14 @@ import {
   type GateLiftResult,
   GatingContext,
   DEFAULT_PRC2_CONFIG,
-} from '@rive/farnsworth-core/dist/developmental/types.js';
+} from '@rive/farnsworth-core';
 import {
   createDefaultEpigeneticState,
   createTrait,
   type EpigeneticTrait,
   type MethylationContext,
   MethylationContext as MC,
-} from '@rive/farnsworth-core/dist/methylation/methylation.js';
+} from '@rive/farnsworth-core';
 import { createChildLogger } from '../utils/logger.js';
 import type { PRC2GateConfig, ImmunityFlag, AccessLevel } from '../types.js';
 
@@ -149,7 +147,6 @@ export class FarnsworthService {
     const gate = PRC2_GATES[agentId];
 
     if (!gate) {
-      // If agent not in predefined gates, check if they have a generic config
       log.warn({ agentId }, 'Agent not found in PRC2 gates');
       return { allowed: false, reason: `Agent '${agentId}' not registered in PRC2 gating` };
     }

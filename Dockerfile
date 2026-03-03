@@ -12,25 +12,24 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03c
+ARG DEPS_VERSION=2026-03-03d
 RUN npm install
 
 # Install build tools globally for building private deps from source
-RUN npm install -g tsup typescript esbuild
+RUN npm install -g tsup typescript
 
 # ── Build private dependencies (installed as source from GitHub, need compilation) ──
 
-# rive-sdk: build main entry + farnsworth config subpath export (bundled is fine here)
+# rive-sdk: build main entry + farnsworth config subpath export
 RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: transpile each .ts file individually (NOT bundled)
-# Bundling with tsup causes export* name collisions between subsystems
-# (e.g. developmental/types.ts and methylation/methylation.ts both export createTrait)
-# Per-file transpilation preserves module boundaries so Node.js ESM resolves correctly
+# farnsworth-core: build as CJS to avoid ESM export* collision errors
+# (developmental/types.ts and methylation/methylation.ts both export createTrait,
+#  which causes ESM SyntaxError but CJS just overwrites — last wins)
 RUN cd node_modules/@rive/farnsworth-core && \
-    mkdir -p dist && \
-    find src -name '*.ts' | xargs esbuild --outdir=dist --outbase=src --format=esm --platform=node --target=es2022
+    tsup src/index.ts --format cjs --out-dir dist && \
+    node -e "var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); delete p.type; p.main='dist/index.cjs'; require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));"
 
 # ── Build the MCP server itself ──
 COPY tsconfig.json ./
