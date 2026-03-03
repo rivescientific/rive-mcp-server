@@ -12,7 +12,7 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03d
+ARG DEPS_VERSION=2026-03-03e
 RUN npm install
 
 # Install build tools globally for building private deps from source
@@ -24,12 +24,76 @@ RUN npm install -g tsup typescript
 RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: build as CJS to avoid ESM export* collision errors
-# (developmental/types.ts and methylation/methylation.ts both export createTrait,
-#  which causes ESM SyntaxError but CJS just overwrites — last wins)
+# farnsworth-core: build with CUSTOM ENTRY POINT to avoid export * collisions
+# The barrel index.ts re-exports 29 modules, some with conflicting names
+# (developmental/types.ts and methylation/methylation.ts both export createTrait).
+# Instead, we create a slim entry that explicitly names only what rive-mcp-server needs.
 RUN cd node_modules/@rive/farnsworth-core && \
-    tsup src/index.ts --format cjs --out-dir dist && \
-    node -e "var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); delete p.type; p.main='dist/index.cjs'; require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));"
+    cat > src/rive-mcp-entry.ts << 'ENTRY' \
+// Custom entry point for rive-mcp-server — explicit imports, no export * collisions \
+\
+// Immunity subsystem \
+export { \
+  createRISC, \
+  loadSiRNAIntoRISC, \
+  scanWithRISC, \
+  determineAction, \
+  recordFalseAlarm, \
+  getFalsePositiveRate, \
+  ThreatType, \
+} from './immunity/risc.js'; \
+\
+// Developmental subsystem \
+export { \
+  applyPRC2Gating, \
+  evaluateGateLift, \
+} from './developmental/prc2-engine.js'; \
+\
+export { \
+  createGatingRule, \
+  createDevelopmentalStage, \
+  DEFAULT_PRC2_CONFIG, \
+  createDefaultEpigeneticState, \
+  createTrait, \
+} from './developmental/types.js'; \
+\
+export type { \
+  GatingContext, \
+  DevelopmentalStage, \
+  PRC2Complex, \
+  GatingRule, \
+  GateLiftResult, \
+} from './developmental/types.js'; \
+\
+// Methylation subsystem (only MethylationContext — values come from developmental) \
+export type { \
+  MethylationContext, \
+  EpigeneticTrait, \
+} from './methylation/methylation.js'; \
+\
+// Immunity types \
+export type { \
+  RISCComplex, \
+  SiRNA, \
+  SiRNAScanResult, \
+} from './immunity/types.js'; \
+\
+// State serialization \
+export { \
+  serializeState, \
+  deserializeState, \
+} from './integration/unified-types.js'; \
+ENTRY
+RUN cd node_modules/@rive/farnsworth-core && \
+    tsup src/rive-mcp-entry.ts --format cjs --out-dir dist --dts && \
+    node -e "\
+      var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); \
+      delete p.type; \
+      p.main='dist/rive-mcp-entry.cjs'; \
+      p.types='dist/rive-mcp-entry.d.ts'; \
+      require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));" && \
+    echo '=== farnsworth-core CJS exports ===' && \
+    node -e "var m=require('./dist/rive-mcp-entry.cjs'); console.log(Object.keys(m).sort().join(', '));"
 
 # ── Build the MCP server itself ──
 COPY tsconfig.json ./
