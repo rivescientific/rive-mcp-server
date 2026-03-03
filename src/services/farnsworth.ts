@@ -10,10 +10,12 @@ import {
   type SiRNAScanResult,
   type Bridge,
   ThreatType,
-} from '@rive/farnsworth-core';
+} from '@rive/farnsworth-core/dist/immunity/risc.js';
 import {
   applyPRC2Gating,
   evaluateGateLift,
+} from '@rive/farnsworth-core/dist/developmental/prc2-engine.js';
+import {
   createGatingRule,
   createDevelopmentalStage,
   type PRC2Complex,
@@ -22,14 +24,14 @@ import {
   type GateLiftResult,
   GatingContext,
   DEFAULT_PRC2_CONFIG,
-} from '@rive/farnsworth-core';
+} from '@rive/farnsworth-core/dist/developmental/types.js';
 import {
   createDefaultEpigeneticState,
   createTrait,
   type EpigeneticTrait,
   type MethylationContext,
   MethylationContext as MC,
-} from '@rive/farnsworth-core';
+} from '@rive/farnsworth-core/dist/methylation/methylation.js';
 import { createChildLogger } from '../utils/logger.js';
 import type { PRC2GateConfig, ImmunityFlag, AccessLevel } from '../types.js';
 

@@ -88,8 +88,10 @@ declare module '@rive-scientific/rive-sdk/farnsworth' {
   }): DomainConfig;
 }
 
-declare module '@rive/farnsworth-core' {
-  // RISC Complex
+// ── Farnsworth Core: subpath module declarations ──
+// We import from specific compiled files to avoid barrel export* collisions
+
+declare module '@rive/farnsworth-core/dist/immunity/risc.js' {
   export function createRISC(id: string, maxGuides: number): RISCComplex;
   export function loadSiRNAIntoRISC(risc: RISCComplex, siRNA: SiRNA): boolean;
   export function scanWithRISC(risc: RISCComplex, context: any, bridges: Bridge[]): SiRNAScanResult[];
@@ -131,10 +133,9 @@ declare module '@rive/farnsworth-core' {
     DRIFT = 'DRIFT',
     INJECTION = 'INJECTION',
   }
+}
 
-  // PRC2 Gating
-  export function applyPRC2Gating(config: PRC2Complex, context: GatingContext): any;
-  export function evaluateGateLift(config: PRC2Complex, context: GatingContext): GateLiftResult;
+declare module '@rive/farnsworth-core/dist/developmental/types.js' {
   export function createGatingRule(params: any): GatingRule;
   export function createDevelopmentalStage(id: string, name: string, capacity: number): DevelopmentalStage;
 
@@ -147,6 +148,12 @@ declare module '@rive/farnsworth-core' {
   }
 
   export interface DevelopmentalStage {
+    stageId: string;
+    name: string;
+    accumulatedContext: number;
+    requiredContext: number;
+    activeGates: any[];
+    completedGates: any[];
     [key: string]: any;
   }
 
@@ -158,9 +165,21 @@ declare module '@rive/farnsworth-core' {
     [key: string]: any;
   }
 
-  export const DEFAULT_PRC2_CONFIG: PRC2Complex;
+  export const GatingContext: {
+    [key: string]: any;
+  };
 
-  // Epigenetic State
+  export const DEFAULT_PRC2_CONFIG: PRC2Complex;
+}
+
+declare module '@rive/farnsworth-core/dist/developmental/prc2-engine.js' {
+  import type { PRC2Complex, GatingContext, GateLiftResult } from '@rive/farnsworth-core/dist/developmental/types.js';
+
+  export function applyPRC2Gating(config: PRC2Complex, context: GatingContext): any;
+  export function evaluateGateLift(config: PRC2Complex, context: GatingContext): GateLiftResult;
+}
+
+declare module '@rive/farnsworth-core/dist/methylation/methylation.js' {
   export function createDefaultEpigeneticState(): any;
   export function createTrait(id: string, pattern: string): EpigeneticTrait;
 
