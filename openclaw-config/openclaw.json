@@ -2,6 +2,21 @@
   "$schema": "https://openclaw.dev/schema/config.json",
   "version": "1.0",
 
+  "_security_notes": {
+    "WARNING": "DO NOT add GitHub, filesystem, or code-access MCP servers to this config.",
+    "reason": "Rive/Farnsworth source code must never be accessible from this device.",
+    "allowed_mcp_servers": ["rive-mcp"],
+    "forbidden_mcp_servers": ["github", "filesystem", "git", "code-interpreter"],
+    "github_access": "If agents need GitHub tools, create a separate 'abundance-agents' bot account with access ONLY to non-sensitive repos. NEVER use the main abundancere account token.",
+    "bot_account_blocked_repos": [
+      "rive-sdk",
+      "farnsworth-core",
+      "farnsworth-semantic-poc",
+      "rive-validated-benchmarks",
+      "rive-mcp-server"
+    ]
+  },
+
   "mcp_servers": {
     "rive-mcp": {
       "type": "http",
@@ -66,7 +81,7 @@
     },
 
     "dispositions_coordinator": {
-      "id": "dispositions_coordinator",
+      "id": "dispo_manager",
       "description": "Investor matching, deal packaging, placement",
       "model": "claude-sonnet-4-5",
       "mcp_servers": ["rive-mcp"],
@@ -81,8 +96,8 @@
     },
 
     "marketing_agent": {
-      "id": "marketing_agent",
-      "description": "Content creation, listings, outreach",
+      "id": "market_analyst",
+      "description": "Content creation, listings, market analysis, outreach",
       "model": "claude-sonnet-4-5",
       "mcp_servers": ["rive-mcp"],
       "env": {
@@ -112,8 +127,8 @@
     },
 
     "mary_ai_coordinator": {
-      "id": "mary_ai_coordinator",
-      "description": "Voice agent oversight, script optimization, call analysis",
+      "id": "portfolio_monitor",
+      "description": "Voice agent oversight, script optimization, call analysis, portfolio monitoring",
       "model": "claude-sonnet-4-5",
       "mcp_servers": ["rive-mcp"],
       "env": {
