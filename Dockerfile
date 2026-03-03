@@ -12,7 +12,7 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03f
+ARG DEPS_VERSION=2026-03-03g
 RUN npm install
 
 # Install build tools globally for building private deps from source
@@ -57,26 +57,7 @@ RUN cd node_modules/@rive/farnsworth-core && \
         '  createTrait,', \
         '} from \"./developmental/types.js\";', \
         '', \
-        'export type {', \
-        '  GatingContext,', \
-        '  DevelopmentalStage,', \
-        '  PRC2Complex,', \
-        '  GatingRule,', \
-        '  GateLiftResult,', \
-        '} from \"./developmental/types.js\";', \
-        '', \
         '// Methylation types only (values come from developmental)', \
-        'export type {', \
-        '  MethylationContext,', \
-        '  EpigeneticTrait,', \
-        '} from \"./methylation/methylation.js\";', \
-        '', \
-        '// Immunity types', \
-        'export type {', \
-        '  RISCComplex,', \
-        '  SiRNA,', \
-        '  SiRNAScanResult,', \
-        '} from \"./immunity/types.js\";', \
         '', \
         '// State serialization', \
         'export {', \
@@ -86,15 +67,15 @@ RUN cd node_modules/@rive/farnsworth-core && \
       ].join('\\n')); \
     "
 
+# Build CJS only (no --dts; server has its own declarations.d.ts for types)
 RUN cd node_modules/@rive/farnsworth-core && \
     echo '=== Custom entry point ===' && \
     cat src/rive-mcp-entry.ts && \
-    tsup src/rive-mcp-entry.ts --format cjs --out-dir dist --dts && \
+    tsup src/rive-mcp-entry.ts --format cjs --out-dir dist && \
     node -e " \
       var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); \
       delete p.type; \
       p.main='dist/rive-mcp-entry.cjs'; \
-      p.types='dist/rive-mcp-entry.d.ts'; \
       require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));" && \
     echo '=== farnsworth-core CJS exports ===' && \
     node -e "var m=require('./dist/rive-mcp-entry.cjs'); console.log(Object.keys(m).sort().join(', '));"
