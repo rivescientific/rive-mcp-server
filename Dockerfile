@@ -20,8 +20,9 @@ RUN cd node_modules/@rive-scientific/rive-sdk && \
     npm install --ignore-scripts 2>/dev/null; \
     npx tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: uses tsc
+# farnsworth-core: uses tsc — remove benchmark/tests dirs first (outside rootDir)
 RUN cd node_modules/@rive/farnsworth-core && \
+    rm -rf benchmark tests && \
     npm install --ignore-scripts 2>/dev/null; \
     npx tsc
 
