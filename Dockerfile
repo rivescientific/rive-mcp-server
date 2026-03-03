@@ -1,42 +1,53 @@
+# ── Builder stage: install, build deps, build server ──
 FROM node:18-alpine AS builder
 
-# Install git (needed to clone private GitHub package deps)
 RUN apk add --no-cache git
 
 WORKDIR /app
 
-# Configure npm to authenticate with GitHub for private repos
-# GH_TOKEN is passed as a build arg from Railway env vars
+# Authenticate with GitHub for private repo access
 ARG GH_TOKEN
-RUN echo "//github.com/:_authToken=${GH_TOKEN}" > .npmrc && \
-    echo "@rive-scientific:registry=https://npm.pkg.github.com" >> .npmrc && \
-    echo "@rive:registry=https://npm.pkg.github.com" >> .npmrc && \
-    git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
 
 COPY package*.json ./
 RUN npm install
 
+# ── Build private dependencies (installed as source from GitHub, need compilation) ──
+
+# rive-sdk: uses tsup — build main entry + farnsworth config subpath export
+RUN cd node_modules/@rive-scientific/rive-sdk && \
+    npm install --ignore-scripts 2>/dev/null; \
+    npx tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --dts --out-dir dist
+
+# farnsworth-core: uses tsc
+RUN cd node_modules/@rive/farnsworth-core && \
+    npm install --ignore-scripts 2>/dev/null; \
+    npx tsc
+
+# Clean up nested dev dependencies from private packages (not needed at runtime)
+RUN rm -rf node_modules/@rive-scientific/rive-sdk/node_modules && \
+    rm -rf node_modules/@rive/farnsworth-core/node_modules
+
+# ── Build the MCP server itself ──
 COPY tsconfig.json ./
 COPY src/ ./src/
 
 RUN npm run build
 
-# ── Production stage (no token, no git, no source code) ──
-FROM node:18-alpine
+# Prune to production deps only
+RUN npm prune --omit=dev
 
-RUN apk add --no-cache git
+# ── Production stage: clean, no tokens, no source ──
+FROM node:18-alpine
 
 WORKDIR /app
 
-ARG GH_TOKEN
-RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+# Copy production node_modules (includes built private deps with dist/)
+COPY --from=builder /app/node_modules ./node_modules
 
-COPY package*.json ./
-RUN npm install --omit=dev && \
-    rm -f .npmrc && \
-    git config --global --remove-section url."https://${GH_TOKEN}@github.com/"
-
+# Copy built MCP server
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
 
 EXPOSE 3000
 
