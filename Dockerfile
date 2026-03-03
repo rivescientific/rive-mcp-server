@@ -12,23 +12,18 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 RUN npm install
 
+# Install tsup globally for building private deps from source
+RUN npm install -g tsup typescript
+
 # ── Build private dependencies (installed as source from GitHub, need compilation) ──
 
-# rive-sdk: uses tsup — build main entry + farnsworth config subpath export
-# Skip --dts (type declarations) — rive-mcp-server uses skipLibCheck so only JS needed
+# rive-sdk: build main entry + farnsworth config subpath export
 RUN cd node_modules/@rive-scientific/rive-sdk && \
-    npm install --ignore-scripts 2>/dev/null; \
-    npx tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
+    tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: uses tsc — remove benchmark/tests dirs first (outside rootDir)
+# farnsworth-core: use tsup (esbuild) — tsc strict mode fails on internal type errors
 RUN cd node_modules/@rive/farnsworth-core && \
-    rm -rf benchmark tests && \
-    npm install --ignore-scripts 2>/dev/null; \
-    npx tsc
-
-# Clean up nested dev dependencies from private packages (not needed at runtime)
-RUN rm -rf node_modules/@rive-scientific/rive-sdk/node_modules && \
-    rm -rf node_modules/@rive/farnsworth-core/node_modules
+    tsup src/index.ts --format cjs,esm --out-dir dist
 
 # ── Build the MCP server itself ──
 COPY tsconfig.json ./
@@ -36,7 +31,7 @@ COPY src/ ./src/
 
 RUN npm run build
 
-# Prune to production deps only
+# Prune to production deps only (removes devDependencies)
 RUN npm prune --omit=dev
 
 # ── Production stage: clean, no tokens, no source ──
