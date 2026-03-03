@@ -10,6 +10,9 @@ ARG GH_TOKEN
 RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
 
 COPY package*.json ./
+
+# Cache-bust: change this value when private deps are updated upstream
+ARG DEPS_VERSION=2026-03-03b
 RUN npm install
 
 # Install tsup globally for building private deps from source
