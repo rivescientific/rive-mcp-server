@@ -62,11 +62,13 @@ Returns matched records with binding confidence scores and cross-dataset bridges
           limit: maxResults,
         });
 
+        const resultBridges = result.bridges || [];
+
         // Run Farnsworth immunity check if requested
         let immunityFlags: SearchToolResult['immunityFlags'] = [];
-        if (params.immunity_check && result.bridges.length > 0) {
+        if (params.immunity_check && resultBridges.length > 0) {
           immunityFlags = await farnsworthService.scanResults(
-            result.bridges as any,
+            resultBridges as any,
             { query: params.query, corpus: params.corpus }
           );
         }
@@ -80,7 +82,7 @@ Returns matched records with binding confidence scores and cross-dataset bridges
             source: params.corpus[0] || 'unknown',
             metadata: m.metadata,
           })),
-          bridges: result.bridges.map((b: any) => ({
+          bridges: resultBridges.map((b: any) => ({
             sourceId: b.sourceNodeId || b.id,
             targetId: b.targetNodeId || b.id,
             sourceDomain: b.sourceDomain || 'unknown',
@@ -97,7 +99,7 @@ Returns matched records with binding confidence scores and cross-dataset bridges
             agentId: creds.agentId,
             query: params.query.slice(0, 50),
             matches: result.matches.length,
-            bridges: result.bridges.length,
+            bridges: resultBridges.length,
             flags: immunityFlags.length,
           },
           'Search completed'

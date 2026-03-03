@@ -54,7 +54,7 @@ Requires at least 2 corpora to discover bridges between.`,
           params.threshold
         );
 
-        const bridges = result.bridges
+        const bridges = (result.bridges || [])
           .filter((b: any) => (b.strength || b.affinity || 0) >= params.threshold)
           .slice(0, params.max_bridges)
           .map((b: any) => ({

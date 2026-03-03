@@ -4,6 +4,8 @@
 
 declare module '@rive-scientific/rive-sdk' {
   export function createEngine(config: any): RiveEngine;
+  export function serializeState(state: NetworkState): string;
+  export function deserializeState(serialized: string): NetworkState;
 
   export interface RiveEngine {
     search(query: string, corpus: string[], options?: QueryOptions): SearchResult;
