@@ -15,9 +15,10 @@ RUN npm install
 # ── Build private dependencies (installed as source from GitHub, need compilation) ──
 
 # rive-sdk: uses tsup — build main entry + farnsworth config subpath export
+# Skip --dts (type declarations) — rive-mcp-server uses skipLibCheck so only JS needed
 RUN cd node_modules/@rive-scientific/rive-sdk && \
     npm install --ignore-scripts 2>/dev/null; \
-    npx tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --dts --out-dir dist
+    npx tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
 # farnsworth-core: uses tsc
 RUN cd node_modules/@rive/farnsworth-core && \
