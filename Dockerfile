@@ -21,7 +21,8 @@ RUN npm install -g tsup typescript
 RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: use tsup (esbuild) — tsc strict mode fails on internal type errors
+# farnsworth-core: barrel src/index.ts re-exports all 4 subsystems
+# (immunity, methylation, integration, developmental)
 RUN cd node_modules/@rive/farnsworth-core && \
     tsup src/index.ts --format cjs,esm --out-dir dist
 
