@@ -1,35 +1,40 @@
-import {
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const farnsworthCore = require('@rive/farnsworth-core');
+
+// Destructure all needed functions/values from the CJS module
+const {
   createRISC,
   loadSiRNAIntoRISC,
   scanWithRISC,
   determineAction,
   recordFalseAlarm,
   getFalsePositiveRate,
-  type RISCComplex,
-  type SiRNA,
-  type SiRNAScanResult,
-  type Bridge,
   ThreatType,
-} from '@rive/farnsworth-core';
-import {
   applyPRC2Gating,
   evaluateGateLift,
   createGatingRule,
   createDevelopmentalStage,
-  type PRC2Complex,
-  type GatingRule,
-  type DevelopmentalStage,
-  type GateLiftResult,
   GatingContext,
   DEFAULT_PRC2_CONFIG,
-} from '@rive/farnsworth-core';
-import {
   createDefaultEpigeneticState,
   createTrait,
-  type EpigeneticTrait,
-  type MethylationContext,
-  MethylationContext as MC,
+  MethylationContext: MC,
+} = farnsworthCore;
+
+import type {
+  RISCComplex,
+  SiRNA,
+  SiRNAScanResult,
+  Bridge,
+  PRC2Complex,
+  GatingRule,
+  DevelopmentalStage,
+  GateLiftResult,
+  EpigeneticTrait,
+  MethylationContext,
 } from '@rive/farnsworth-core';
+
 import { createChildLogger } from '../utils/logger.js';
 import type { PRC2GateConfig, ImmunityFlag, AccessLevel } from '../types.js';
 
