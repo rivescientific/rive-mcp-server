@@ -12,7 +12,7 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03e
+ARG DEPS_VERSION=2026-03-03f
 RUN npm install
 
 # Install build tools globally for building private deps from source
@@ -25,68 +25,72 @@ RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
 # farnsworth-core: build with CUSTOM ENTRY POINT to avoid export * collisions
-# The barrel index.ts re-exports 29 modules, some with conflicting names
-# (developmental/types.ts and methylation/methylation.ts both export createTrait).
-# Instead, we create a slim entry that explicitly names only what rive-mcp-server needs.
+# The barrel index.ts re-exports 29 modules with conflicting names.
+# We create a slim entry that explicitly names only what rive-mcp-server needs.
 RUN cd node_modules/@rive/farnsworth-core && \
-    cat > src/rive-mcp-entry.ts << 'ENTRY' \
-// Custom entry point for rive-mcp-server — explicit imports, no export * collisions \
-\
-// Immunity subsystem \
-export { \
-  createRISC, \
-  loadSiRNAIntoRISC, \
-  scanWithRISC, \
-  determineAction, \
-  recordFalseAlarm, \
-  getFalsePositiveRate, \
-  ThreatType, \
-} from './immunity/risc.js'; \
-\
-// Developmental subsystem \
-export { \
-  applyPRC2Gating, \
-  evaluateGateLift, \
-} from './developmental/prc2-engine.js'; \
-\
-export { \
-  createGatingRule, \
-  createDevelopmentalStage, \
-  DEFAULT_PRC2_CONFIG, \
-  createDefaultEpigeneticState, \
-  createTrait, \
-} from './developmental/types.js'; \
-\
-export type { \
-  GatingContext, \
-  DevelopmentalStage, \
-  PRC2Complex, \
-  GatingRule, \
-  GateLiftResult, \
-} from './developmental/types.js'; \
-\
-// Methylation subsystem (only MethylationContext — values come from developmental) \
-export type { \
-  MethylationContext, \
-  EpigeneticTrait, \
-} from './methylation/methylation.js'; \
-\
-// Immunity types \
-export type { \
-  RISCComplex, \
-  SiRNA, \
-  SiRNAScanResult, \
-} from './immunity/types.js'; \
-\
-// State serialization \
-export { \
-  serializeState, \
-  deserializeState, \
-} from './integration/unified-types.js'; \
-ENTRY
+    node -e " \
+      require('fs').writeFileSync('src/rive-mcp-entry.ts', [ \
+        '// Custom entry point for rive-mcp-server — explicit imports, no export * collisions', \
+        '', \
+        '// Immunity subsystem', \
+        'export {', \
+        '  createRISC,', \
+        '  loadSiRNAIntoRISC,', \
+        '  scanWithRISC,', \
+        '  determineAction,', \
+        '  recordFalseAlarm,', \
+        '  getFalsePositiveRate,', \
+        '  ThreatType,', \
+        '} from \"./immunity/risc.js\";', \
+        '', \
+        '// Developmental subsystem', \
+        'export {', \
+        '  applyPRC2Gating,', \
+        '  evaluateGateLift,', \
+        '} from \"./developmental/prc2-engine.js\";', \
+        '', \
+        'export {', \
+        '  createGatingRule,', \
+        '  createDevelopmentalStage,', \
+        '  DEFAULT_PRC2_CONFIG,', \
+        '  createDefaultEpigeneticState,', \
+        '  createTrait,', \
+        '} from \"./developmental/types.js\";', \
+        '', \
+        'export type {', \
+        '  GatingContext,', \
+        '  DevelopmentalStage,', \
+        '  PRC2Complex,', \
+        '  GatingRule,', \
+        '  GateLiftResult,', \
+        '} from \"./developmental/types.js\";', \
+        '', \
+        '// Methylation types only (values come from developmental)', \
+        'export type {', \
+        '  MethylationContext,', \
+        '  EpigeneticTrait,', \
+        '} from \"./methylation/methylation.js\";', \
+        '', \
+        '// Immunity types', \
+        'export type {', \
+        '  RISCComplex,', \
+        '  SiRNA,', \
+        '  SiRNAScanResult,', \
+        '} from \"./immunity/types.js\";', \
+        '', \
+        '// State serialization', \
+        'export {', \
+        '  serializeState,', \
+        '  deserializeState,', \
+        '} from \"./integration/unified-types.js\";', \
+      ].join('\\n')); \
+    "
+
 RUN cd node_modules/@rive/farnsworth-core && \
+    echo '=== Custom entry point ===' && \
+    cat src/rive-mcp-entry.ts && \
     tsup src/rive-mcp-entry.ts --format cjs --out-dir dist --dts && \
-    node -e "\
+    node -e " \
       var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); \
       delete p.type; \
       p.main='dist/rive-mcp-entry.cjs'; \
