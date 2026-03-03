@@ -1,0 +1,129 @@
+{
+  "$schema": "https://openclaw.dev/schema/config.json",
+  "version": "1.0",
+
+  "mcp_servers": {
+    "rive-mcp": {
+      "type": "http",
+      "url": "https://REPLACE_WITH_RAILWAY_URL/mcp",
+      "transport": "streamable-http",
+      "auth": {
+        "type": "bearer_token",
+        "token_env": "RIVE_MCP_API_KEY"
+      },
+      "timeout_ms": 30000,
+      "retry_attempts": 3,
+      "retry_backoff_ms": 1000
+    }
+  },
+
+  "agents": {
+    "acquisitions_analyst": {
+      "id": "acquisitions_analyst",
+      "description": "Deal analysis, DB&IVA generation, property evaluation",
+      "model": "claude-opus-4-6",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_ACQUISITIONS_ANALYST}"
+      },
+      "skills": [
+        "deal_analysis",
+        "db_and_iva",
+        "property_valuation",
+        "risk_assessment"
+      ]
+    },
+
+    "lead_qualifier": {
+      "id": "lead_qualifier",
+      "description": "Screen inbound leads, assign lead scores",
+      "model": "claude-sonnet-4-5",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_LEAD_QUALIFIER}"
+      },
+      "skills": [
+        "lead_scoring",
+        "qualification_criteria",
+        "market_segmentation"
+      ]
+    },
+
+    "deal_underwriter": {
+      "id": "deal_underwriter",
+      "description": "Financial modeling, risk scoring, underwriting",
+      "model": "claude-opus-4-6",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_DEAL_UNDERWRITER}"
+      },
+      "skills": [
+        "financial_modeling",
+        "cap_rate_analysis",
+        "dscr_calculation",
+        "risk_matrix"
+      ]
+    },
+
+    "dispositions_coordinator": {
+      "id": "dispositions_coordinator",
+      "description": "Investor matching, deal packaging, placement",
+      "model": "claude-sonnet-4-5",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_DISPOSITIONS_COORDINATOR}"
+      },
+      "skills": [
+        "investor_matching",
+        "deal_packaging",
+        "placement_strategy"
+      ]
+    },
+
+    "marketing_agent": {
+      "id": "marketing_agent",
+      "description": "Content creation, listings, outreach",
+      "model": "claude-sonnet-4-5",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_MARKETING_AGENT}"
+      },
+      "skills": [
+        "content_creation",
+        "listing_optimization",
+        "market_messaging"
+      ]
+    },
+
+    "compliance_docs": {
+      "id": "compliance_docs",
+      "description": "Trust documentation, legal compliance, regulatory filings",
+      "model": "claude-opus-4-6",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_COMPLIANCE_DOCS}"
+      },
+      "skills": [
+        "trust_structure",
+        "1031_exchange",
+        "accredited_investor_verification",
+        "document_generation"
+      ]
+    },
+
+    "mary_ai_coordinator": {
+      "id": "mary_ai_coordinator",
+      "description": "Voice agent oversight, script optimization, call analysis",
+      "model": "claude-sonnet-4-5",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_MARY_AI_COORDINATOR}"
+      },
+      "skills": [
+        "script_optimization",
+        "call_analysis",
+        "agent_training"
+      ]
+    }
+  }
+}
