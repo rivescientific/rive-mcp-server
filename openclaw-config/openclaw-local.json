@@ -1,0 +1,175 @@
+{
+  "$schema": "https://openclaw.dev/schema/config.json",
+  "version": "1.0",
+
+  "_architecture": {
+    "name": "Rive-Augmented Local Intelligence",
+    "description": "Local MoE model (Qwen3-30B-A3B) for inference + Rive MCP for knowledge + Farnsworth for defense. Zero API costs.",
+    "local_model": "Qwen3-30B-A3B at IQ3_XXS via llama-server on port 8080",
+    "active_params_per_token": "3.3B (out of 30.5B total — 128 experts, 8 active)",
+    "knowledge_engine": "Rive on Railway via MCP (rive_search, rive_discover_bridges, rive_learn, etc.)",
+    "defense_system": "Farnsworth PRC2 gating + RISC immunity (server-side on Railway)",
+    "total_api_cost": "$0"
+  },
+
+  "_security_notes": {
+    "WARNING": "DO NOT add GitHub, filesystem, or code-access MCP servers to this config.",
+    "reason": "Rive/Farnsworth source code must never be accessible from this device.",
+    "allowed_mcp_servers": ["rive-mcp"],
+    "forbidden_mcp_servers": ["github", "filesystem", "git", "code-interpreter"],
+    "github_access": "If agents need GitHub tools, create a separate bot account. NEVER use the main abundancere token."
+  },
+
+  "models": {
+    "local-primary": {
+      "provider": "openai-compatible",
+      "base_url": "http://localhost:8080/v1",
+      "model": "qwen3-30b-a3b",
+      "description": "Local Qwen3-30B-A3B MoE (3.3B active). 30B quality at 3.3B cost. Zero API fees.",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "api_key": "not-needed"
+    },
+    "local-fallback": {
+      "provider": "openai-compatible",
+      "base_url": "http://localhost:8081/v1",
+      "model": "qwen3-8b",
+      "description": "Local Qwen3-8B dense. Fast fallback at 28-35 tok/s. Zero API fees.",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "api_key": "not-needed"
+    }
+  },
+
+  "mcp_servers": {
+    "rive-mcp": {
+      "type": "http",
+      "url": "https://REPLACE_WITH_RAILWAY_URL/mcp",
+      "transport": "streamable-http",
+      "auth": {
+        "type": "bearer_token",
+        "token_env": "RIVE_MCP_API_KEY"
+      },
+      "timeout_ms": 30000,
+      "retry_attempts": 3,
+      "retry_backoff_ms": 1000
+    }
+  },
+
+  "agents": {
+    "acquisitions_analyst": {
+      "id": "acquisitions_analyst",
+      "description": "Deal analysis, DB&IVA generation, property evaluation. Uses Rive for live deal data and bridge discovery across leads/properties/transcripts.",
+      "model": "local-primary",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_ACQUISITIONS_ANALYST}"
+      },
+      "system_prompt": "You are the Acquisitions Analyst for Abundance RE. You have access to Rive tools for searching deals, leads, properties, call transcripts, and emails. Use rive_search for data lookups. Use rive_discover_bridges to find cross-domain connections between leads and properties. Use rive_learn to reinforce good patterns. Always run rive_assess_immunity on critical deal analysis before presenting to investors. Follow the 5-10-12 Rule: max 5% interest, max 10% cash-in, minimum 12% CoC return.",
+      "skills": [
+        "deal_analysis",
+        "db_and_iva",
+        "property_valuation",
+        "risk_assessment"
+      ]
+    },
+
+    "lead_qualifier": {
+      "id": "lead_qualifier",
+      "description": "Screen inbound leads, assign lead scores. Uses Rive to cross-reference leads with call transcripts and Zoho CRM data.",
+      "model": "local-primary",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_LEAD_QUALIFIER}"
+      },
+      "system_prompt": "You are the Lead Qualifier for Abundance RE. Use rive_search on leads and call_transcripts corpora to evaluate incoming leads. Use rive_discover_bridges to find connections between new leads and existing pipeline deals. Score leads based on: equity position, mortgage rate, seller motivation, property condition, and market timing. Flag leads that match the Trust Acquisition criteria (low equity, low rate mortgages).",
+      "skills": [
+        "lead_scoring",
+        "qualification_criteria",
+        "market_segmentation"
+      ]
+    },
+
+    "deal_underwriter": {
+      "id": "deal_underwriter",
+      "description": "Financial modeling, risk scoring, underwriting. Uses Rive for comparable deal analysis and historical patterns.",
+      "model": "local-primary",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_DEAL_UNDERWRITER}"
+      },
+      "system_prompt": "You are the Deal Underwriter for Abundance RE. Use rive_search across deals and properties to find comparable transactions. Use rive_discover_bridges to identify risk patterns across similar deals. Always include 20% reserves, 3% buyer-side commissions, and trust setup costs in your analysis. Run rive_assess_immunity on all financial projections to catch calculation errors. Evaluate against the 4 Investor Qualification Criteria: low interest rate, strong monthly cash flow ($500-$1000+), 12%+ CoC return, acceptable condition/risk.",
+      "skills": [
+        "financial_modeling",
+        "cap_rate_analysis",
+        "dscr_calculation",
+        "risk_matrix"
+      ]
+    },
+
+    "dispositions_coordinator": {
+      "id": "dispo_manager",
+      "description": "Investor matching, deal packaging, placement. Uses Rive to match investor preferences with available deals.",
+      "model": "local-primary",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_DISPOSITIONS_COORDINATOR}"
+      },
+      "system_prompt": "You are the Dispositions Coordinator for Abundance RE. Use rive_search on deals and properties to find assignment-ready opportunities. Use rive_discover_bridges to match investor preferences with deal characteristics. Target assignment fee: $10,000+. Package deals as investor-ready with pre-underwritten analysis, trust documentation references, and clear cash flow projections.",
+      "skills": [
+        "investor_matching",
+        "deal_packaging",
+        "placement_strategy"
+      ]
+    },
+
+    "marketing_agent": {
+      "id": "market_analyst",
+      "description": "Market analysis, content creation, listings. Uses Rive for market trend discovery and competitive intelligence.",
+      "model": "local-fallback",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_MARKETING_AGENT}"
+      },
+      "system_prompt": "You are the Market Analyst for Abundance RE. Use rive_search on leads, deals, and properties to identify market trends and opportunities. Use rive_discover_bridges to find emerging patterns in geographic areas or property types. Generate market reports, listing content, and investment opportunity summaries.",
+      "skills": [
+        "content_creation",
+        "listing_optimization",
+        "market_messaging"
+      ]
+    },
+
+    "compliance_docs": {
+      "id": "compliance_docs",
+      "description": "Trust documentation, legal compliance, regulatory filings. Uses Rive for precedent research and document consistency.",
+      "model": "local-primary",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_COMPLIANCE_DOCS}"
+      },
+      "system_prompt": "You are the Compliance & Documentation specialist for Abundance RE. Use rive_search on deals, properties, and emails to ensure documentation consistency. Use rive_assess_immunity to scan all generated documents for compliance red flags. Focus on trust structure integrity, beneficial interest assignment documentation, and regulatory compliance. Always cross-reference with existing deals to maintain consistency.",
+      "skills": [
+        "trust_structure",
+        "1031_exchange",
+        "accredited_investor_verification",
+        "document_generation"
+      ]
+    },
+
+    "mary_ai_coordinator": {
+      "id": "portfolio_monitor",
+      "description": "Voice agent oversight, portfolio monitoring, performance tracking. Uses Rive for call analysis and portfolio health metrics.",
+      "model": "local-fallback",
+      "mcp_servers": ["rive-mcp"],
+      "env": {
+        "RIVE_MCP_API_KEY": "${RIVE_MCP_KEY_MARY_AI_COORDINATOR}"
+      },
+      "system_prompt": "You are the Portfolio Monitor and Mary AI Coordinator for Abundance RE. Use rive_search on deals and properties to track portfolio health. Use rive_get_state to monitor the overall Rive engine status. Track deal pipeline velocity, assignment completion rates, and investor satisfaction metrics.",
+      "skills": [
+        "script_optimization",
+        "call_analysis",
+        "agent_training"
+      ]
+    }
+  }
+}
