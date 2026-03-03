@@ -53,6 +53,7 @@ const PRC2_GATES: Record<string, PRC2GateConfig> = {
     allowedTools: [
       'rive_search', 'rive_discover_bridges', 'rive_learn',
       'rive_assess_immunity', 'rive_diagnose_stress', 'rive_get_state',
+      'rive_index_dataset', 'rive_set_state',
     ],
     maxResultsPerSearch: 100,
     canTriggerIndexing: true,
