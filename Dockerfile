@@ -12,7 +12,7 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03g
+ARG DEPS_VERSION=2026-03-03h
 RUN npm install
 
 # Install build tools globally for building private deps from source
@@ -25,44 +25,51 @@ RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
 
 # farnsworth-core: build with CUSTOM ENTRY POINT to avoid export * collisions
-# The barrel index.ts re-exports 29 modules with conflicting names.
-# We create a slim entry that explicitly names only what rive-mcp-server needs.
+# Source inspection shows duplicate exports across modules:
+#   - createRISC, ThreatType, createDefaultEpigeneticState, createTrait
+#     exist in BOTH immunity/types.ts AND integration/unified-types.ts
+#   - GatingContext is in integration/unified-types.ts
+#   - createDevelopmentalStage, DEFAULT_PRC2_CONFIG are in developmental/types.ts
+# We pick ONE source for each to avoid any collision.
 RUN cd node_modules/@rive/farnsworth-core && \
     node -e " \
       require('fs').writeFileSync('src/rive-mcp-entry.ts', [ \
-        '// Custom entry point for rive-mcp-server — explicit imports, no export * collisions', \
+        '// Custom entry — explicit imports from verified source files', \
         '', \
-        '// Immunity subsystem', \
+        '// From immunity/types.ts: factory funcs, enums, core types', \
         'export {', \
         '  createRISC,', \
+        '  ThreatType,', \
+        '  createDefaultEpigeneticState,', \
+        '  createTrait,', \
+        '} from \"./immunity/types.js\";', \
+        '', \
+        '// From immunity/risc.ts: scanning/enforcement functions', \
+        'export {', \
         '  loadSiRNAIntoRISC,', \
         '  scanWithRISC,', \
         '  determineAction,', \
         '  recordFalseAlarm,', \
         '  getFalsePositiveRate,', \
-        '  ThreatType,', \
         '} from \"./immunity/risc.js\";', \
         '', \
-        '// Developmental subsystem', \
+        '// From developmental/prc2-engine.ts: PRC2 gating logic', \
         'export {', \
         '  applyPRC2Gating,', \
         '  evaluateGateLift,', \
         '} from \"./developmental/prc2-engine.js\";', \
         '', \
+        '// From developmental/types.ts: stage/config creation', \
         'export {', \
         '  createGatingRule,', \
         '  createDevelopmentalStage,', \
         '  DEFAULT_PRC2_CONFIG,', \
-        '  createDefaultEpigeneticState,', \
-        '  createTrait,', \
         '} from \"./developmental/types.js\";', \
         '', \
-        '// Methylation types only (values come from developmental)', \
-        '', \
-        '// State serialization', \
+        '// From integration/unified-types.ts: enums used as values', \
         'export {', \
-        '  serializeState,', \
-        '  deserializeState,', \
+        '  GatingContext,', \
+        '  MethylationContext,', \
         '} from \"./integration/unified-types.js\";', \
       ].join('\\n')); \
     "
