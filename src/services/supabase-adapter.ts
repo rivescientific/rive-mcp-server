@@ -6,6 +6,19 @@ import type { DataSourceId } from '../types.js';
 const log = createChildLogger('supabase-adapter');
 
 /**
+ * Table name configuration — reads from environment variables.
+ * This allows the MCP server to work with any Supabase schema
+ * without hardcoding table names.
+ */
+const TABLE_NAMES = {
+  leads: process.env.SUPABASE_TABLE_LEADS || 'leads',
+  deals: process.env.SUPABASE_TABLE_DEALS || 'deals',
+  properties: process.env.SUPABASE_TABLE_PROPERTIES || 'properties',
+  transcripts: process.env.SUPABASE_TABLE_TRANSCRIPTS || 'call_transcripts',
+  emails: process.env.SUPABASE_TABLE_EMAILS || 'emails',
+};
+
+/**
  * Loads data from Supabase tables and converts to Rive Dataset format.
  */
 export class SupabaseDataAdapter {
@@ -15,6 +28,7 @@ export class SupabaseDataAdapter {
     const url = process.env.SUPABASE_URL!;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     this.client = createClient(url, key);
+    log.info({ tables: TABLE_NAMES }, 'SupabaseDataAdapter initialized with table config');
   }
 
   async loadDataset(source: DataSourceId): Promise<Dataset> {
@@ -35,14 +49,17 @@ export class SupabaseDataAdapter {
   }
 
   private async loadLeads(): Promise<Dataset> {
+    const tableName = TABLE_NAMES.leads;
+    log.info({ table: tableName }, 'Loading leads');
+
     const { data, error } = await this.client
-      .from('leads')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5000);
 
     if (error) {
-      log.error({ error }, 'Failed to load leads');
+      log.error({ error, table: tableName }, 'Failed to load leads');
       throw error;
     }
 
@@ -53,7 +70,7 @@ export class SupabaseDataAdapter {
         id: row.id?.toString() || '',
         content: this.flattenToContent(row),
         metadata: {
-          table: 'leads',
+          table: tableName,
           source: 'supabase',
           ...row,
         },
@@ -62,14 +79,17 @@ export class SupabaseDataAdapter {
   }
 
   private async loadDeals(): Promise<Dataset> {
+    const tableName = TABLE_NAMES.deals;
+    log.info({ table: tableName }, 'Loading deals');
+
     const { data, error } = await this.client
-      .from('deals')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5000);
 
     if (error) {
-      log.error({ error }, 'Failed to load deals');
+      log.error({ error, table: tableName }, 'Failed to load deals');
       throw error;
     }
 
@@ -79,20 +99,23 @@ export class SupabaseDataAdapter {
       records: (data || []).map((row: any) => ({
         id: row.id?.toString() || '',
         content: this.flattenToContent(row),
-        metadata: { table: 'deals', source: 'supabase', ...row },
+        metadata: { table: tableName, source: 'supabase', ...row },
       })),
     };
   }
 
   private async loadProperties(): Promise<Dataset> {
+    const tableName = TABLE_NAMES.properties;
+    log.info({ table: tableName }, 'Loading properties');
+
     const { data, error } = await this.client
-      .from('properties')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5000);
 
     if (error) {
-      log.error({ error }, 'Failed to load properties');
+      log.error({ error, table: tableName }, 'Failed to load properties');
       throw error;
     }
 
@@ -102,21 +125,23 @@ export class SupabaseDataAdapter {
       records: (data || []).map((row: any) => ({
         id: row.id?.toString() || '',
         content: this.flattenToContent(row),
-        metadata: { table: 'properties', source: 'supabase', ...row },
+        metadata: { table: tableName, source: 'supabase', ...row },
       })),
     };
   }
 
   private async loadTranscripts(): Promise<Dataset> {
+    const tableName = TABLE_NAMES.transcripts;
+    log.info({ table: tableName }, 'Loading transcripts');
+
     const { data, error } = await this.client
-      .from('call_transcripts')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(2000);
 
     if (error) {
-      log.error({ error }, 'Failed to load transcripts');
-      // Table may not exist yet — return empty dataset
+      log.error({ error, table: tableName }, 'Failed to load transcripts');
       return { id: 'transcripts', name: 'Call Transcripts', records: [] };
     }
 
@@ -126,20 +151,23 @@ export class SupabaseDataAdapter {
       records: (data || []).map((row: any) => ({
         id: row.id?.toString() || '',
         content: row.transcript || row.content || this.flattenToContent(row),
-        metadata: { table: 'call_transcripts', source: 'supabase', ...row },
+        metadata: { table: tableName, source: 'supabase', ...row },
       })),
     };
   }
 
   private async loadEmails(): Promise<Dataset> {
+    const tableName = TABLE_NAMES.emails;
+    log.info({ table: tableName }, 'Loading emails');
+
     const { data, error } = await this.client
-      .from('emails')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(2000);
 
     if (error) {
-      log.error({ error }, 'Failed to load emails');
+      log.error({ error, table: tableName }, 'Failed to load emails');
       return { id: 'emails', name: 'Emails', records: [] };
     }
 
@@ -151,7 +179,7 @@ export class SupabaseDataAdapter {
         content: [row.subject, row.body, row.from, row.to]
           .filter(Boolean)
           .join(' | '),
-        metadata: { table: 'emails', source: 'supabase', ...row },
+        metadata: { table: tableName, source: 'supabase', ...row },
       })),
     };
   }
