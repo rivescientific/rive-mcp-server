@@ -78,17 +78,17 @@ export class RiveEngineService {
           { corporaCount: this.indexedCorpora.size, corpora: Array.from(this.indexedCorpora.keys()) },
           'Restored corpora metadata from persistence'
         );
-      }
 
-      // Restore calibration metrics
-      if (typeof metadata.bindingSites === 'number') {
-        this._lastConsolidateTotal = metadata.bindingSites;
-      }
-      if (typeof metadata.methylationCycle === 'number') {
-        this._methylationCycleCount = metadata.methylationCycle;
-      }
-      if (metadata.immunityCalibrated) {
-        log.info('Previous session had immunity calibrated — will need re-calibration after next index');
+        // Restore calibration metrics
+        if (typeof metadata.bindingSites === 'number') {
+          this._lastConsolidateTotal = metadata.bindingSites;
+        }
+        if (typeof metadata.methylationCycle === 'number') {
+          this._methylationCycleCount = metadata.methylationCycle;
+        }
+        if (metadata.immunityCalibrated) {
+          log.info('Previous session had immunity calibrated — will need re-calibration after next index');
+        }
       }
     } catch (err) {
       log.warn({ err }, 'Failed to restore corpora metadata (non-fatal)');
