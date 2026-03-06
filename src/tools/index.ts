@@ -12,6 +12,8 @@ import { registerLearnTool } from './learn.js';
 import { registerImmunityTools } from './immunity.js';
 import { registerIndexingTool } from './indexing.js';
 import { registerStateTools } from './state.js';
+import { registerCompareTool } from './compare.js';
+import { registerMonitorTool } from './monitor.js';
 
 import { createChildLogger } from '../utils/logger.js';
 
@@ -54,5 +56,11 @@ export function registerAllTools(
   // 7 & 8. rive_get_state + rive_set_state
   registerStateTools(server, engineService, farnsworthService, getCredentials);
 
-  log.info('All 8 MCP tools registered');
+  // 9. rive_compare (coordinator: temporal drift between two documents)
+  registerCompareTool(server, engineService, farnsworthService, getCredentials);
+
+  // 10. rive_monitor (coordinator: immunity-based corpus monitoring)
+  registerMonitorTool(server, engineService, farnsworthService, getCredentials);
+
+  log.info('All 10 MCP tools registered');
 }

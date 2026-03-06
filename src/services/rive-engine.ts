@@ -1,6 +1,8 @@
 import {
   createEngine,
+  createCoordinator,
   type RiveEngine,
+  type RiveCoordinator,
   type DomainConfig,
   type SearchResult,
   type Dataset,
@@ -10,6 +12,9 @@ import {
   type StressDiagnosis,
   type NetworkState,
   type QueryOptions,
+  type LensAdapter,
+  type ComparisonResult,
+  type MonitorResult,
 } from '@rive-scientific/rive-sdk';
 import {
   FARNSWORTH_CONFIG,
@@ -23,6 +28,7 @@ const log = createChildLogger('rive-engine');
 
 export class RiveEngineService {
   private engine: RiveEngine | null = null;
+  private coordinator: RiveCoordinator | null = null;
   private persistence: StatePersistence;
   private immunityCalibration: ImmunityCalibration | null = null;
   private indexedCorpora: Map<string, { recordCount: number; lastIndexed: Date }> = new Map();
@@ -49,6 +55,7 @@ export class RiveEngineService {
     });
 
     this.engine = createEngine(config);
+    this.coordinator = createCoordinator();
 
     // Restore previous state if available
     const savedState = await this.persistence.loadState();
@@ -336,6 +343,33 @@ export class RiveEngineService {
     const hours = Math.floor(ms / 3600000);
     const minutes = Math.floor((ms % 3600000) / 60000);
     return `${hours}h ${minutes}m`;
+  }
+
+  // ── Coordinator: Compare & Monitor ──
+
+  getCoordinator(): RiveCoordinator {
+    if (!this.coordinator) {
+      throw new Error('Coordinator not initialized. Call initialize() first.');
+    }
+    return this.coordinator;
+  }
+
+  compare(
+    before: string,
+    after: string,
+    lens?: LensAdapter
+  ): ComparisonResult {
+    const coordinator = this.getCoordinator();
+    return coordinator.compare(before, after, lens);
+  }
+
+  monitor(
+    corpus: string[],
+    newDocument: string,
+    lens?: LensAdapter
+  ): MonitorResult {
+    const coordinator = this.getCoordinator();
+    return coordinator.monitor(corpus, newDocument, lens);
   }
 
   // ── Private ──

@@ -147,7 +147,7 @@ async function main() {
   const port = parseInt(process.env.PORT || '3000', 10);
   app.listen(port, '0.0.0.0', () => {
     log.info({ port }, `Rive MCP Server listening on port ${port}`);
-    log.info('Tools registered: rive_search, rive_discover_bridges, rive_learn, rive_assess_immunity, rive_diagnose_stress, rive_index_dataset, rive_get_state, rive_set_state');
+    log.info('Tools registered: rive_search, rive_discover_bridges, rive_learn, rive_assess_immunity, rive_diagnose_stress, rive_index_dataset, rive_get_state, rive_set_state, rive_compare, rive_monitor');
   });
 
   // ── Scheduled Indexing ──

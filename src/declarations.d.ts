@@ -75,6 +75,61 @@ declare module '@rive-scientific/rive-sdk' {
     datasets?: string[];
     [key: string]: any;
   }
+
+  // ── Coordinator (compare/monitor with auto-mode selection) ──
+
+  export function createCoordinator(config?: Partial<CoordinatorConfig>): RiveCoordinator;
+
+  export interface CoordinatorConfig {
+    [key: string]: any;
+  }
+
+  export interface LensAdapter {
+    id: string;
+    categoryNames: readonly string[];
+    categories: Record<string, Set<string>>;
+  }
+
+  export type EmergedTerm = [string, number];
+
+  export interface ComparisonResult {
+    similarity: { cosine: number; jaccard: number };
+    emerged: EmergedTerm[];
+    vanished: EmergedTerm[];
+    stable: EmergedTerm[];
+    driftMagnitude: number;
+    engineStats: { s0: number; s1: number; s2: number; totalSites: number };
+    lens?: {
+      lensId: string;
+      categoryBreakdown: Record<string, number>;
+      categoryPercentages: Record<string, number>;
+      dominantCategory: string;
+      shiftConcentration: number;
+      features: Record<string, number>;
+    };
+  }
+
+  export interface MonitorResult {
+    comparison: ComparisonResult;
+    immunity: {
+      isNative: boolean;
+      confidence: number;
+      s2HitRatio: number;
+      anomalyType: string;
+    };
+  }
+
+  export interface RiveCoordinator {
+    index(documents: Array<{ id: string; content: string }>): void;
+    search(query: string, options?: any): any;
+    findDocuments(query: string, options?: any): any;
+    rankPages(docId: string, query: string, options?: any): any;
+    annotateBridges(docId: string, query: string, options?: any): any;
+    formatForLLM(result: any, options?: any): string;
+    getStats(): any;
+    compare(before: string, after: string, lens?: LensAdapter): ComparisonResult;
+    monitor(corpus: string[], newDocument: string, lens?: LensAdapter): MonitorResult;
+  }
 }
 
 declare module '@rive-scientific/rive-sdk/farnsworth' {

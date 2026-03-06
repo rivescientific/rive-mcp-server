@@ -116,6 +116,54 @@ export const IndexDatasetInputSchema = z.object({
     .describe('Force full re-index even if data unchanged'),
 });
 
+// ── rive_compare ──
+export const CompareInputSchema = z.object({
+  before: z
+    .string()
+    .min(10, 'Document must be at least 10 characters')
+    .describe('The earlier/baseline document text to compare from'),
+  after: z
+    .string()
+    .min(10, 'Document must be at least 10 characters')
+    .describe('The later/updated document text to compare to'),
+  lens: z
+    .object({
+      id: z.string().describe('Lens identifier (e.g. "code", "financial_risk", "pico")'),
+      categoryNames: z.array(z.string()).describe('Ordered list of category names'),
+      categories: z
+        .record(z.array(z.string()))
+        .describe('Map of category name → array of terms'),
+    })
+    .optional()
+    .describe(
+      'Optional Farnsworth lens to classify emerged terms into semantic categories. Pass a lens to get category breakdown, dominant category, and ML-ready features.'
+    ),
+});
+
+// ── rive_monitor ──
+export const MonitorInputSchema = z.object({
+  corpus: z
+    .array(z.string())
+    .min(1, 'At least one corpus document required')
+    .describe('Array of document texts that define the "normal" corpus'),
+  new_document: z
+    .string()
+    .min(10, 'Document must be at least 10 characters')
+    .describe('The new document to assess against the corpus'),
+  lens: z
+    .object({
+      id: z.string().describe('Lens identifier (e.g. "code", "financial_risk", "pico")'),
+      categoryNames: z.array(z.string()).describe('Ordered list of category names'),
+      categories: z
+        .record(z.array(z.string()))
+        .describe('Map of category name → array of terms'),
+    })
+    .optional()
+    .describe(
+      'Optional Farnsworth lens to classify drift into semantic categories.'
+    ),
+});
+
 // ── rive_get_state ──
 export const GetStateInputSchema = z.object({
   summary_only: z

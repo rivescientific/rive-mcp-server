@@ -12,7 +12,7 @@ RUN git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https:/
 COPY package*.json ./
 
 # Cache-bust: change this value when private deps are updated upstream
-ARG DEPS_VERSION=2026-03-03h
+ARG DEPS_VERSION=2026-03-05a
 RUN npm install
 
 # Install build tools globally for building private deps from source
@@ -22,7 +22,7 @@ RUN npm install -g tsup typescript
 
 # rive-sdk: build main entry + farnsworth config subpath export
 RUN cd node_modules/@rive-scientific/rive-sdk && \
-    tsup src/index.ts src/configs/farnsworth/index.ts --format cjs,esm --out-dir dist
+    tsup src/index.ts src/configs/farnsworth/index.ts src/core/coordinator.ts --format cjs,esm --out-dir dist
 
 # farnsworth-core: build with CUSTOM ENTRY POINT to avoid export * collisions
 # Source inspection shows duplicate exports across modules:
