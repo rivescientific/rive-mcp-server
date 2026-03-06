@@ -51,16 +51,15 @@ Useful for monitoring engine health and diagnosing search issues.`,
       }
 
       try {
-        const state = engineService.getState();
         const corporaInfo = engineService.getCorpusInfo();
         const farnsworthMetrics = farnsworthService.getMetrics();
 
         const result: EngineStateResult = {
           mode: engineService.getMode(),
           corpora: corporaInfo,
-          bindingSites: (state as any).bindingSites?.length || 0,
-          methylationCycle: (state as any).methylationCycle || 0,
-          immunityCalibrated: farnsworthMetrics.loadedGuides > 0,
+          bindingSites: engineService.getBindingSiteCount(),
+          methylationCycle: engineService.getMethylationCycle(),
+          immunityCalibrated: engineService.isImmunityCalibrated(),
           uptime: engineService.getUptime(),
         };
 

@@ -27,6 +27,8 @@ export class RiveEngineService {
   private immunityCalibration: ImmunityCalibration | null = null;
   private indexedCorpora: Map<string, { recordCount: number; lastIndexed: Date }> = new Map();
   private startTime: Date;
+  private _lastConsolidateTotal: number = 0;
+  private _methylationCycleCount: number = 0;
 
   constructor(persistence: StatePersistence) {
     this.persistence = persistence;
@@ -76,6 +78,17 @@ export class RiveEngineService {
           { corporaCount: this.indexedCorpora.size, corpora: Array.from(this.indexedCorpora.keys()) },
           'Restored corpora metadata from persistence'
         );
+      }
+
+      // Restore calibration metrics
+      if (typeof metadata.bindingSites === 'number') {
+        this._lastConsolidateTotal = metadata.bindingSites;
+      }
+      if (typeof metadata.methylationCycle === 'number') {
+        this._methylationCycleCount = metadata.methylationCycle;
+      }
+      if (metadata.immunityCalibrated) {
+        log.info('Previous session had immunity calibrated — will need re-calibration after next index');
       }
     } catch (err) {
       log.warn({ err }, 'Failed to restore corpora metadata (non-fatal)');
@@ -285,7 +298,46 @@ export class RiveEngineService {
   }
 
   consolidate(): { demoted: number; survived: number; total: number } {
-    return this.getEngine().consolidate();
+    const result = this.getEngine().consolidate();
+    this._lastConsolidateTotal = result.total;
+    this._methylationCycleCount++;
+    return result;
+  }
+
+  // ── Calibration Status ──
+
+  isImmunityCalibrated(): boolean {
+    return this.immunityCalibration !== null;
+  }
+
+  getBindingSiteCount(): number {
+    try {
+      const state = this.getEngine().getState();
+      const stateObj = state as any;
+      // Try multiple possible property paths in the SDK's NetworkState
+      if (Array.isArray(stateObj.bindingSites)) return stateObj.bindingSites.length;
+      if (Array.isArray(stateObj.bindings)) return stateObj.bindings.length;
+      if (typeof stateObj.bindingSiteCount === 'number') return stateObj.bindingSiteCount;
+      if (stateObj.network?.bindingSites) return stateObj.network.bindingSites.length;
+      if (stateObj.network?.nodes) return stateObj.network.nodes.length;
+      // Fallback: use consolidate result (total = binding sites that were evaluated)
+      return this._lastConsolidateTotal;
+    } catch {
+      return this._lastConsolidateTotal;
+    }
+  }
+
+  getMethylationCycle(): number {
+    try {
+      const state = this.getEngine().getState();
+      const stateObj = state as any;
+      if (typeof stateObj.methylationCycle === 'number') return stateObj.methylationCycle;
+      if (typeof stateObj.consolidationCycles === 'number') return stateObj.consolidationCycles;
+      if (stateObj.network?.methylationCycle != null) return stateObj.network.methylationCycle;
+      return this._methylationCycleCount;
+    } catch {
+      return this._methylationCycleCount;
+    }
   }
 
   // ── Info ──
@@ -313,6 +365,9 @@ export class RiveEngineService {
       await this.persistence.saveState(state, {
         corpora: this.getCorpusInfo(),
         mode: this.getMode(),
+        bindingSites: this.getBindingSiteCount(),
+        methylationCycle: this._methylationCycleCount,
+        immunityCalibrated: this.isImmunityCalibrated(),
       });
     } catch (err) {
       log.error({ err }, 'Failed to persist state (non-fatal)');
