@@ -136,6 +136,44 @@ export class StatePersistence {
       .eq('id', jobId);
   }
 
+  async loadMetadata(): Promise<Record<string, unknown> | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('rive_engine_state')
+        .select('metadata')
+        .eq('id', 'current')
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data.metadata as Record<string, unknown>;
+    } catch (err) {
+      log.warn({ err }, 'Failed to load metadata (non-fatal)');
+      return null;
+    }
+  }
+
+  async loadMetadata(): Promise<Record<string, unknown> | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('rive_engine_state')
+        .select('metadata')
+        .eq('id', 'current')
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data.metadata as Record<string, unknown>;
+    } catch (err) {
+      log.warn({ err }, 'Failed to load metadata (non-fatal)');
+      return null;
+    }
+  }
+
   getLastSavedAt(): Date | null {
     return this.lastSavedAt;
   }

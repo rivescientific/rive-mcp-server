@@ -56,6 +56,30 @@ export class RiveEngineService {
     } else {
       log.info('Engine started with fresh state');
     }
+
+    // Restore indexedCorpora from persisted metadata so rive_get_state
+    // reports correct corpora even after a Railway redeploy
+    await this.restoreCorporaFromMetadata();
+  }
+
+  private async restoreCorporaFromMetadata(): Promise<void> {
+    try {
+      const metadata = await this.persistence.loadMetadata();
+      if (metadata && Array.isArray(metadata.corpora)) {
+        for (const corpus of metadata.corpora as Array<{ name: string; recordCount: number; lastIndexed: string }>) {
+          this.indexedCorpora.set(corpus.name, {
+            recordCount: corpus.recordCount,
+            lastIndexed: new Date(corpus.lastIndexed),
+          });
+        }
+        log.info(
+          { corporaCount: this.indexedCorpora.size, corpora: Array.from(this.indexedCorpora.keys()) },
+          'Restored corpora metadata from persistence'
+        );
+      }
+    } catch (err) {
+      log.warn({ err }, 'Failed to restore corpora metadata (non-fatal)');
+    }
   }
 
   getEngine(): RiveEngine {
@@ -179,6 +203,66 @@ export class RiveEngineService {
       'Dataset indexed'
     );
     return dataset.records.length;
+  }
+
+  // ── Post-Index Calibration ──
+
+  async runPostIndexCalibration(): Promise<{
+    consolidated: { demoted: number; survived: number; total: number };
+    immunityCalibrated: boolean;
+    bindingSites: number;
+  }> {
+    const engine = this.getEngine();
+    const corpora = Array.from(this.indexedCorpora.keys());
+
+    if (corpora.length === 0) {
+      log.warn('No corpora indexed — skipping post-index calibration');
+      return { consolidated: { demoted: 0, survived: 0, total: 0 }, immunityCalibrated: false, bindingSites: 0 };
+    }
+
+    // Step 1: Run methylation consolidation cycle
+    log.info('Running methylation consolidation cycle...');
+    const consolidated = engine.consolidate();
+    log.info(
+      { demoted: consolidated.demoted, survived: consolidated.survived, total: consolidated.total },
+      'Consolidation complete'
+    );
+
+    // Step 2: Calibrate immunity with representative native queries
+    // These are queries that ARE typical for the Abundance RE domain
+    const nativeQueries = [
+      'find leads in Fort Lauderdale with high equity',
+      'properties with ARV above 200000',
+      'deals closing this month in South Florida',
+      'motivated sellers with tax liens',
+      'wholesale deals under contract',
+      'investor buyers looking for fix and flip',
+      'vacant properties in Broward County',
+      'call transcripts from last week',
+      'leads with multiple properties',
+      'cash buyers interested in rental portfolio',
+    ];
+
+    log.info({ queryCount: nativeQueries.length, corpora }, 'Calibrating immunity...');
+    await this.calibrateImmunity(nativeQueries, corpora);
+    log.info('Immunity calibration complete');
+
+    // Step 3: Persist the calibrated state
+    await this.persistState();
+
+    const state = engine.getState();
+    const bindingSites = (state as any).bindingSites?.length || 0;
+
+    log.info(
+      { bindingSites, methylationCycle: (state as any).methylationCycle || 0, immunityCalibrated: true },
+      'Post-index calibration finished'
+    );
+
+    return {
+      consolidated,
+      immunityCalibrated: true,
+      bindingSites,
+    };
   }
 
   // ── State ──

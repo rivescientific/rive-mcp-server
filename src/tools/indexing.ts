@@ -85,6 +85,23 @@ Returns job status and record count.`,
           completed_at: new Date().toISOString(),
         });
 
+        // Run post-index calibration (consolidation + immunity)
+        let calibration;
+        try {
+          calibration = await engineService.runPostIndexCalibration();
+          log.info(
+            {
+              bindingSites: calibration.bindingSites,
+              immunityCalibrated: calibration.immunityCalibrated,
+              consolidated: calibration.consolidated,
+            },
+            'Post-index calibration completed'
+          );
+        } catch (calErr: any) {
+          log.warn({ err: calErr }, 'Post-index calibration failed (non-fatal)');
+          calibration = null;
+        }
+
         const result: IndexingResult = {
           jobId,
           source: params.source,
@@ -93,6 +110,19 @@ Returns job status and record count.`,
           message: `Indexed ${recordCount} records from ${params.source}`,
         };
 
+        // Append calibration info to result
+        const fullResult = calibration
+          ? {
+              ...result,
+              calibration: {
+                bindingSites: calibration.bindingSites,
+                immunityCalibrated: calibration.immunityCalibrated,
+                methylationCycle: calibration.consolidated.total > 0 ? 1 : 0,
+                consolidated: calibration.consolidated,
+              },
+            }
+          : result;
+
         log.info(
           { agentId: creds.agentId, source: params.source, records: recordCount },
           'Indexing completed'
@@ -100,7 +130,7 @@ Returns job status and record count.`,
 
         return {
           content: [
-            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+            { type: 'text' as const, text: JSON.stringify(fullResult, null, 2) },
           ],
         };
       } catch (err: any) {
