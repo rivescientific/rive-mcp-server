@@ -154,13 +154,20 @@ async function main() {
   // In production, use node-cron here for periodic re-indexing.
   // For now, indexing is triggered via the rive_index_dataset tool.
 
-  // Graceful shutdown
+  // Graceful shutdown — preserve corpora/calibration metadata
   const shutdown = async () => {
     log.info('Shutting down...');
     try {
       const state = engineService.getState();
-      await persistence.saveState(state, { reason: 'shutdown' });
-      log.info('State saved before shutdown');
+      await persistence.saveState(state, {
+        reason: 'shutdown',
+        corpora: engineService.getCorpusInfo(),
+        mode: engineService.getMode(),
+        bindingSites: engineService.getBindingSiteCount(),
+        methylationCycle: engineService.getMethylationCycle(),
+        immunityCalibrated: engineService.isImmunityCalibrated(),
+      });
+      log.info('State saved before shutdown (metadata preserved)');
     } catch (err) {
       log.error({ err }, 'Failed to save state on shutdown');
     }

@@ -225,7 +225,6 @@ export class RiveEngineService {
     immunityCalibrated: boolean;
     bindingSites: number;
   }> {
-    const engine = this.getEngine();
     const corpora = Array.from(this.indexedCorpora.keys());
 
     if (corpora.length === 0) {
@@ -234,8 +233,9 @@ export class RiveEngineService {
     }
 
     // Step 1: Run methylation consolidation cycle
+    // Use this.consolidate() so _lastConsolidateTotal and _methylationCycleCount are tracked
     log.info('Running methylation consolidation cycle...');
-    const consolidated = engine.consolidate();
+    const consolidated = this.consolidate();
     log.info(
       { demoted: consolidated.demoted, survived: consolidated.survived, total: consolidated.total },
       'Consolidation complete'
@@ -263,11 +263,10 @@ export class RiveEngineService {
     // Step 3: Persist the calibrated state
     await this.persistState();
 
-    const state = engine.getState();
-    const bindingSites = (state as any).bindingSites?.length || 0;
+    const bindingSites = this.getBindingSiteCount();
 
     log.info(
-      { bindingSites, methylationCycle: (state as any).methylationCycle || 0, immunityCalibrated: true },
+      { bindingSites, methylationCycle: this.getMethylationCycle(), immunityCalibrated: true },
       'Post-index calibration finished'
     );
 
@@ -311,33 +310,15 @@ export class RiveEngineService {
   }
 
   getBindingSiteCount(): number {
-    try {
-      const state = this.getEngine().getState();
-      const stateObj = state as any;
-      // Try multiple possible property paths in the SDK's NetworkState
-      if (Array.isArray(stateObj.bindingSites)) return stateObj.bindingSites.length;
-      if (Array.isArray(stateObj.bindings)) return stateObj.bindings.length;
-      if (typeof stateObj.bindingSiteCount === 'number') return stateObj.bindingSiteCount;
-      if (stateObj.network?.bindingSites) return stateObj.network.bindingSites.length;
-      if (stateObj.network?.nodes) return stateObj.network.nodes.length;
-      // Fallback: use consolidate result (total = binding sites that were evaluated)
-      return this._lastConsolidateTotal;
-    } catch {
-      return this._lastConsolidateTotal;
-    }
+    // Use the tracked consolidation total — this is authoritative.
+    // The SDK's NetworkState structure doesn't expose binding sites
+    // in a predictable property path, so we track it ourselves
+    // from consolidate() results.
+    return this._lastConsolidateTotal;
   }
 
   getMethylationCycle(): number {
-    try {
-      const state = this.getEngine().getState();
-      const stateObj = state as any;
-      if (typeof stateObj.methylationCycle === 'number') return stateObj.methylationCycle;
-      if (typeof stateObj.consolidationCycles === 'number') return stateObj.consolidationCycles;
-      if (stateObj.network?.methylationCycle != null) return stateObj.network.methylationCycle;
-      return this._methylationCycleCount;
-    } catch {
-      return this._methylationCycleCount;
-    }
+    return this._methylationCycleCount;
   }
 
   // ── Info ──
