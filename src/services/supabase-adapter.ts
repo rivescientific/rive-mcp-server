@@ -2,20 +2,21 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Dataset } from '@rive-scientific/rive-sdk';
 import { createChildLogger } from '../utils/logger.js';
 import type { DataSourceId } from '../types.js';
+import type { ContentTemplate } from './data-adapter.js';
+import { applyContentTemplate } from './data-adapter.js';
 
 const log = createChildLogger('supabase-adapter');
 
 /**
  * Table name configuration — reads from environment variables.
- * This allows the MCP server to work with any Supabase schema
- * without hardcoding table names.
+ * Generic corpus names: override these for your deployment.
  */
 const TABLE_NAMES = {
-  leads: process.env.SUPABASE_TABLE_LEADS || 'leads',
-  deals: process.env.SUPABASE_TABLE_DEALS || 'deals',
-  properties: process.env.SUPABASE_TABLE_PROPERTIES || 'properties',
-  transcripts: process.env.SUPABASE_TABLE_TRANSCRIPTS || 'call_transcripts',
-  emails: process.env.SUPABASE_TABLE_EMAILS || 'emails',
+  leads: process.env.CORPUS_TABLE_1 || process.env.SUPABASE_TABLE_LEADS || 'leads',
+  deals: process.env.CORPUS_TABLE_2 || process.env.SUPABASE_TABLE_DEALS || 'deals',
+  properties: process.env.CORPUS_TABLE_3 || process.env.SUPABASE_TABLE_PROPERTIES || 'properties',
+  transcripts: process.env.CORPUS_TABLE_4 || process.env.SUPABASE_TABLE_TRANSCRIPTS || 'call_transcripts',
+  emails: process.env.CORPUS_TABLE_5 || process.env.SUPABASE_TABLE_EMAILS || 'emails',
 };
 
 /**
@@ -23,24 +24,27 @@ const TABLE_NAMES = {
  * Falls back gracefully if the column doesn't exist.
  */
 const ORDER_COLUMNS = {
-  leads: process.env.SUPABASE_ORDER_LEADS || 'analyzed_at',
-  deals: process.env.SUPABASE_ORDER_DEALS || 'created_at',
-  properties: process.env.SUPABASE_ORDER_PROPERTIES || 'analyzed_at',
-  transcripts: process.env.SUPABASE_ORDER_TRANSCRIPTS || 'created_at',
-  emails: process.env.SUPABASE_ORDER_EMAILS || 'created_at',
+  leads: process.env.CORPUS_ORDER_1 || process.env.SUPABASE_ORDER_LEADS || 'analyzed_at',
+  deals: process.env.CORPUS_ORDER_2 || process.env.SUPABASE_ORDER_DEALS || 'created_at',
+  properties: process.env.CORPUS_ORDER_3 || process.env.SUPABASE_ORDER_PROPERTIES || 'analyzed_at',
+  transcripts: process.env.CORPUS_ORDER_4 || process.env.SUPABASE_ORDER_TRANSCRIPTS || 'created_at',
+  emails: process.env.CORPUS_ORDER_5 || process.env.SUPABASE_ORDER_EMAILS || 'created_at',
 };
 
 /**
  * Loads data from Supabase tables and converts to Rive Dataset format.
+ * Optionally applies a ContentTemplate to strip PII before indexing.
  */
 export class SupabaseDataAdapter {
   private client: SupabaseClient;
+  private contentTemplate?: ContentTemplate;
 
-  constructor() {
+  constructor(contentTemplate?: ContentTemplate) {
     const url = process.env.SUPABASE_URL!;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     this.client = createClient(url, key);
-    log.info({ tables: TABLE_NAMES, orderColumns: ORDER_COLUMNS }, 'SupabaseDataAdapter initialized');
+    this.contentTemplate = contentTemplate;
+    log.info({ tables: TABLE_NAMES, orderColumns: ORDER_COLUMNS, template: contentTemplate?.id || 'none' }, 'SupabaseDataAdapter initialized');
   }
 
   /**
@@ -108,15 +112,7 @@ export class SupabaseDataAdapter {
     return {
       id: 'supabase_leads',
       name: 'Supabase Leads',
-      records: rows.map((row: any) => ({
-        id: row.id?.toString() || '',
-        content: this.flattenToContent(row),
-        metadata: {
-          table: tableName,
-          source: 'supabase',
-          ...row,
-        },
-      })),
+      records: rows.map((row: any) => this.buildRecord(row, tableName)),
     };
   }
 
@@ -130,11 +126,7 @@ export class SupabaseDataAdapter {
     return {
       id: 'supabase_deals',
       name: 'Supabase Deals',
-      records: rows.map((row: any) => ({
-        id: row.id?.toString() || '',
-        content: this.flattenToContent(row),
-        metadata: { table: tableName, source: 'supabase', ...row },
-      })),
+      records: rows.map((row: any) => this.buildRecord(row, tableName)),
     };
   }
 
@@ -148,11 +140,7 @@ export class SupabaseDataAdapter {
     return {
       id: 'supabase_properties',
       name: 'Supabase Properties',
-      records: rows.map((row: any) => ({
-        id: row.id?.toString() || '',
-        content: this.flattenToContent(row),
-        metadata: { table: tableName, source: 'supabase', ...row },
-      })),
+      records: rows.map((row: any) => this.buildRecord(row, tableName)),
     };
   }
 
@@ -167,11 +155,7 @@ export class SupabaseDataAdapter {
       return {
         id: 'transcripts',
         name: 'Call Transcripts',
-        records: rows.map((row: any) => ({
-          id: row.id?.toString() || '',
-          content: row.transcript || row.content || this.flattenToContent(row),
-          metadata: { table: tableName, source: 'supabase', ...row },
-        })),
+        records: rows.map((row: any) => this.buildRecord(row, tableName)),
       };
     } catch (err) {
       log.error({ err, table: tableName }, 'Failed to load transcripts');
@@ -190,18 +174,32 @@ export class SupabaseDataAdapter {
       return {
         id: 'emails',
         name: 'Emails',
-        records: rows.map((row: any) => ({
-          id: row.id?.toString() || '',
-          content: [row.subject, row.body, row.from, row.to]
-            .filter(Boolean)
-            .join(' | '),
-          metadata: { table: tableName, source: 'supabase', ...row },
-        })),
+        records: rows.map((row: any) => this.buildRecord(row, tableName)),
       };
     } catch (err) {
       log.error({ err, table: tableName }, 'Failed to load emails');
       return { id: 'emails', name: 'Emails', records: [] };
     }
+  }
+
+  /**
+   * Build a single record from a row, applying content template if configured.
+   */
+  private buildRecord(row: any, tableName: string): { id: string; content: string; metadata: Record<string, unknown> } {
+    if (this.contentTemplate) {
+      const { indexContent, metadata } = applyContentTemplate(row, this.contentTemplate);
+      return {
+        id: row.id?.toString() || '',
+        content: indexContent,
+        metadata: { table: tableName, source: 'supabase', ...metadata },
+      };
+    }
+
+    return {
+      id: row.id?.toString() || '',
+      content: this.flattenToContent(row),
+      metadata: { table: tableName, source: 'supabase', ...row },
+    };
   }
 
   /**
