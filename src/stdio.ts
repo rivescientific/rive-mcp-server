@@ -71,7 +71,7 @@ async function main() {
   );
 
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await server.connect(transport as any);
 
   log.info('Rive MCP Server running on stdio');
 }
