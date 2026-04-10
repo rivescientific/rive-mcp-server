@@ -41,10 +41,16 @@ The `GH_TOKEN` is **not present** in the production image. No TypeScript source 
 
 `@rive-scientific/rive-sdk` and `@rive/farnsworth-core` are proprietary packages on GitHub. The MCP server code (this repo) is fully reviewable. The engine packages are available under license.
 
+## Access Control Model
+
+Access is controlled by **PRC2 gating at the MCP server layer**, not at the database level. Each API key is scoped to an agent with specific `allowed_corpora` and `allowed_tools` permissions, enforced by the server before any database query is made.
+
+> **Note:** The server uses the Supabase **service role key**, which bypasses Row Level Security (RLS) by design. Do not rely on Supabase RLS as a security boundary — the MCP server's PRC2 gating is the access control layer. If you need database-level restrictions, use a dedicated Postgres role with limited grants instead of the service role key.
+
 ## Recommendations for Deployment
 
-1. Use Supabase Row Level Security (RLS) to further scope what the service role key can access
-2. Rotate `API_KEY_SEED` periodically and re-issue agent keys
-3. Set `allowed_corpora` and `allowed_tools` per agent — don't give every agent `["*"]`
-4. Monitor the `last_used_at` column on `rive_api_keys` for unused or suspicious keys
-5. Deploy behind a reverse proxy (Railway does this automatically) for TLS termination
+1. Rotate `API_KEY_SEED` periodically and re-issue agent keys
+2. Set `allowed_corpora` and `allowed_tools` per agent — don't give every agent `["*"]`
+3. Monitor the `last_used_at` column on `rive_api_keys` for unused or suspicious keys
+4. Deploy behind a reverse proxy (Railway does this automatically) for TLS termination
+5. For sensitive data (payroll, healthcare): use content templates to strip PII before indexing — see `ContentTemplate` configuration

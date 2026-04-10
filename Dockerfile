@@ -24,68 +24,26 @@ RUN npm install -g tsup typescript
 RUN cd node_modules/@rive-scientific/rive-sdk && \
     tsup src/index.ts src/configs/farnsworth/index.ts src/core/coordinator.ts --format cjs,esm --out-dir dist
 
-# farnsworth-core: build with CUSTOM ENTRY POINT to avoid export * collisions
-# Source inspection shows duplicate exports across modules:
-#   - createRISC, ThreatType, createDefaultEpigeneticState, createTrait
-#     exist in BOTH immunity/types.ts AND integration/unified-types.ts
-#   - GatingContext is in integration/unified-types.ts
-#   - createDevelopmentalStage, DEFAULT_PRC2_CONFIG are in developmental/types.ts
-# We pick ONE source for each to avoid any collision.
+# farnsworth-core: build custom CJS entry point for MCP server compatibility
 RUN cd node_modules/@rive/farnsworth-core && \
+    node scripts/generate-mcp-entry.js || \
     node -e " \
-      require('fs').writeFileSync('src/rive-mcp-entry.ts', [ \
-        '// Custom entry — explicit imports from verified source files', \
-        '', \
-        '// From immunity/types.ts: factory funcs, enums, core types', \
-        'export {', \
-        '  createRISC,', \
-        '  ThreatType,', \
-        '  createDefaultEpigeneticState,', \
-        '  createTrait,', \
-        '} from \"./immunity/types.js\";', \
-        '', \
-        '// From immunity/risc.ts: scanning/enforcement functions', \
-        'export {', \
-        '  loadSiRNAIntoRISC,', \
-        '  scanWithRISC,', \
-        '  determineAction,', \
-        '  recordFalseAlarm,', \
-        '  getFalsePositiveRate,', \
-        '} from \"./immunity/risc.js\";', \
-        '', \
-        '// From developmental/prc2-engine.ts: PRC2 gating logic', \
-        'export {', \
-        '  applyPRC2Gating,', \
-        '  evaluateGateLift,', \
-        '} from \"./developmental/prc2-engine.js\";', \
-        '', \
-        '// From developmental/types.ts: stage/config creation', \
-        'export {', \
-        '  createGatingRule,', \
-        '  createDevelopmentalStage,', \
-        '  DEFAULT_PRC2_CONFIG,', \
-        '} from \"./developmental/types.js\";', \
-        '', \
-        '// From integration/unified-types.ts: enums used as values', \
-        'export {', \
-        '  GatingContext,', \
-        '  MethylationContext,', \
-        '} from \"./integration/unified-types.js\";', \
-      ].join('\\n')); \
-    "
+      var e = [ \
+        'export { createRISC, ThreatType, createDefaultEpigeneticState, createTrait } from \"./immunity/types.js\";', \
+        'export { loadSiRNAIntoRISC, scanWithRISC, determineAction, recordFalseAlarm, getFalsePositiveRate } from \"./immunity/risc.js\";', \
+        'export { applyPRC2Gating, evaluateGateLift } from \"./developmental/prc2-engine.js\";', \
+        'export { createGatingRule, createDevelopmentalStage, DEFAULT_PRC2_CONFIG } from \"./developmental/types.js\";', \
+        'export { GatingContext, MethylationContext } from \"./integration/unified-types.js\";', \
+      ].join('\\n'); \
+      require('fs').writeFileSync('src/rive-mcp-entry.ts', e);"
 
-# Build CJS only (no --dts; server has its own declarations.d.ts for types)
 RUN cd node_modules/@rive/farnsworth-core && \
-    echo '=== Custom entry point ===' && \
-    cat src/rive-mcp-entry.ts && \
     tsup src/rive-mcp-entry.ts --format cjs --out-dir dist && \
     node -e " \
       var p=JSON.parse(require('fs').readFileSync('package.json','utf8')); \
       delete p.type; \
       p.main='dist/rive-mcp-entry.cjs'; \
-      require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));" && \
-    echo '=== farnsworth-core CJS exports ===' && \
-    node -e "var m=require('./dist/rive-mcp-entry.cjs'); console.log(Object.keys(m).sort().join(', '));"
+      require('fs').writeFileSync('package.json', JSON.stringify(p, null, 2));"
 
 # ── Build the MCP server itself ──
 COPY tsconfig.json ./

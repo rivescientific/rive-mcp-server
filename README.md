@@ -251,7 +251,7 @@ The MCP server is stateless compute — your data is your data.
 | **What outbound connections does it make?** | Your Supabase URL only. No telemetry, no analytics, no phoning home. |
 | **Are API keys stored in plaintext?** | No. SHA-256 hashed before storage. Plaintext is never persisted. |
 | **Can agents see each other's data?** | No. PRC2 gating scopes each agent to specific corpora and tools. |
-| **Can the server access my Supabase admin?** | It uses the service role key you provide. Scope this in Supabase RLS if needed. |
+| **Can the server access my Supabase admin?** | It uses the service role key you provide, which bypasses RLS. Access is controlled by PRC2 gating at the MCP layer. For tighter DB-level control, use a dedicated Postgres role with limited grants. |
 | **Is source code included in the Docker image?** | No. The production Docker stage copies only compiled JS — no `.ts` source. |
 | **What about the private dependencies?** | `rive-sdk` and `farnsworth-core` are proprietary GitHub packages. The MCP server code (this repo) is open for review. |
 
