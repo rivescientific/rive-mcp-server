@@ -244,3 +244,53 @@ declare module '@rive/farnsworth-core' {
     [key: string]: any;
   };
 }
+
+// ── MCP SDK stdio transport ──
+declare module '@modelcontextprotocol/sdk/server/stdio.js' {
+  export class StdioServerTransport {
+    constructor();
+  }
+}
+
+// ── Azure dependencies (optional, installed for enterprise deployments) ──
+declare module 'mssql' {
+  const mssql: {
+    connect(config: any): Promise<any>;
+    [key: string]: any;
+  };
+  export default mssql;
+}
+
+declare module '@azure/storage-blob' {
+  export class BlobServiceClient {
+    static fromConnectionString(connectionString: string): BlobServiceClient;
+    getContainerClient(name: string): any;
+    [key: string]: any;
+  }
+}
+
+declare module '@azure/identity' {
+  export class DefaultAzureCredential {
+    getToken(scope: string): Promise<{ token: string }>;
+  }
+}
+
+// ── Node.js globals ──
+declare var process: {
+  env: Record<string, string | undefined>;
+  exit(code?: number): never;
+  [key: string]: any;
+};
+
+declare var console: {
+  log(...args: any[]): void;
+  error(...args: any[]): void;
+  warn(...args: any[]): void;
+  info(...args: any[]): void;
+};
+
+declare class Buffer {
+  static from(data: any): Buffer;
+  static concat(buffers: Buffer[]): Buffer;
+  toString(encoding?: string): string;
+}
