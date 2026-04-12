@@ -2,7 +2,7 @@
 
 ## Reporting Vulnerabilities
 
-If you discover a security issue, email alex@rive-scientific.com directly. Do not open a public issue.
+If you discover a security issue, email alex@rivescientific.com directly. Do not open a public issue.
 
 ## Data Residency
 

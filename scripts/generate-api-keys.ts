@@ -72,7 +72,7 @@ const agents: AgentDef[] = [
 ];
 
 async function generateKey(agent: AgentDef): Promise<string> {
-  const raw = `abundance-re-${agent.id}-${Date.now()}-${Math.random()}`;
+  const raw = `rive-${agent.id}-${Date.now()}-${Math.random()}`;
   const token = `sk-rive-${createHash('sha256').update(raw).digest('hex').slice(0, 48)}`;
   const hash = createHash('sha256').update(token).digest('hex');
 
@@ -102,7 +102,7 @@ async function main() {
     console.log(`${agent.id} (${agent.accessLevel}): ${token}`);
   }
 
-  console.log('\n--- OpenClaw .env format ---\n');
+  console.log('\n--- .env format ---\n');
   for (const [id, token] of Object.entries(keys)) {
     console.log(`RIVE_MCP_KEY_${id.toUpperCase()}=${token}`);
   }

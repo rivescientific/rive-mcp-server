@@ -46,11 +46,11 @@ export class RiveEngineService {
 
     // Use the Farnsworth-enhanced config which includes methylation + immunity
     const config: DomainConfig = createFarnsworthConfig({
-      name: 'abundance-re',
+      name: 'rive-mcp',
       mode: 'semantic',
       metadata: {
-        organization: 'Abundance RE',
-        purpose: 'Real estate acquisition pipeline',
+        organization: 'Rive Scientific',
+        purpose: 'MCP semantic search and drift detection',
       },
     });
 
@@ -249,7 +249,7 @@ export class RiveEngineService {
     );
 
     // Step 2: Calibrate immunity with representative native queries
-    // These are queries that ARE typical for the Abundance RE domain
+    // These are queries that ARE typical for the configured domain
     const nativeQueries = [
       'find leads in Fort Lauderdale with high equity',
       'properties with ARV above 200000',

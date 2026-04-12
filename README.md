@@ -1,6 +1,6 @@
 # Rive MCP Server
 
-An MCP (Model Context Protocol) server that wraps the [Rive SDK](https://github.com/teamabundance/rive-sdk) cooperative binding engine and [Farnsworth Core](https://github.com/abundancere/farnsworth-core) immunity system. Connect it to Claude (or any MCP client) to get document drift detection, semantic search, cross-dataset bridge discovery, and immune-calibrated anomaly detection — all through natural language.
+An MCP (Model Context Protocol) server that wraps the [Rive SDK](https://github.com/rivescientific/rive-sdk) cooperative binding engine and [Farnsworth Core](https://github.com/rivescientific/farnsworth-core) immunity system. Connect it to Claude (or any MCP client) to get document drift detection, semantic search, cross-dataset bridge discovery, and immune-calibrated anomaly detection — all through natural language.
 
 > **For security reviewers:** This server exposes no UI. It is a backend that receives MCP tool calls over HTTPS and returns structured results. All data stays in your Supabase project. See [Security & Data Residency](#security--data-residency) below.
 
@@ -282,7 +282,7 @@ That's it. No other connections.
 ### Install
 
 ```bash
-git clone https://github.com/abundancere/rive-mcp-server.git
+git clone https://github.com/rivescientific/rive-mcp-server.git
 cd rive-mcp-server
 npm install
 ```
@@ -647,4 +647,4 @@ The MCP server code (this repo) is open source. The engine packages are availabl
 
 ## License
 
-Proprietary — Rive Scientific / Abundance RE. Contact alex@rive-scientific.com for licensing.
+Proprietary — Rive Scientific Inc. Contact alex@rivescientific.com for licensing.

@@ -7,7 +7,7 @@
     "reason": "Rive/Farnsworth source code must never be accessible from this device.",
     "allowed_mcp_servers": ["rive-mcp"],
     "forbidden_mcp_servers": ["github", "filesystem", "git", "code-interpreter"],
-    "github_access": "If agents need GitHub tools, create a separate 'abundance-agents' bot account with access ONLY to non-sensitive repos. NEVER use the main abundancere account token.",
+    "github_access": "If agents need GitHub tools, create a separate bot account with access ONLY to non-sensitive repos. NEVER use the main org account token.",
     "bot_account_blocked_repos": [
       "rive-sdk",
       "farnsworth-core",
