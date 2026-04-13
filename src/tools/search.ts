@@ -15,7 +15,7 @@ export function registerSearchTool(
 ) {
   server.tool(
     'rive_search',
-    `Search across indexed Abundance RE datasets using Rive's cooperative binding engine.
+    `Search across indexed datasets using Rive's cooperative binding engine.
 
 Finds answers across multiple data sources (Supabase leads/deals/properties, Zoho CRM, call transcripts, emails) by establishing dynamic binding sites between query fragments and data fragments.
 

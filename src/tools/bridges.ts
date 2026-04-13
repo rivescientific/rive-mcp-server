@@ -15,7 +15,7 @@ export function registerBridgesTool(
 ) {
   server.tool(
     'rive_discover_bridges',
-    `Discover unexpected connections between records in different Abundance RE datasets.
+    `Discover unexpected connections between records in different indexed datasets.
 
 Finds semantic and structural bridges between leads, deals, properties, transcripts, and emails.
 Useful for:

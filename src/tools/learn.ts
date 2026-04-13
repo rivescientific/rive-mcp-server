@@ -25,7 +25,7 @@ Rive uses this feedback to update binding sites via Farnsworth's methylation cas
 - Negative feedback flags bindings for demotion
 - Partial feedback indicates the result was on the right track but incomplete
 
-Over time, this creates a self-improving search engine tuned to Abundance RE's deal patterns.`,
+Over time, this creates a self-improving search engine tuned to your organization's data patterns.`,
     LearnInputSchema.shape,
     async (params) => {
       const creds = getCredentials();
