@@ -647,4 +647,4 @@ The MCP server code (this repo) is open source. The engine packages are availabl
 
 ## License
 
-Proprietary — Rive Scientific Inc. Contact alex@rivescientific.com for licensing.
+Proprietary — Rive Scientific Inc. Contact info@rivescientific.com for licensing.
